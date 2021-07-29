@@ -2,9 +2,9 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Command, Text
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, ReplyKeyboardRemove
 from aiogram.utils.exceptions import Throttled, MessageToDeleteNotFound
-from keyboards import menu, keywords_menu
+from keyboards import menu, keywords_menu, keywords_menu_level2
 from loader import dp, bot
 from models import Keywords, Chat
 from settings import admin_id, bot_id
@@ -40,35 +40,42 @@ def has_keywords(func):
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: types.Message):
     await message.answer("Привет!\nЭто бот для фильтра чата!")
+    await process_admin_command(message)
 
 
 @dp.message_handler(commands=['help'])
 async def process_help_command(message: types.Message):
     print(message.chat.id)
-    await message.answer("Помошь")
+    await message.answer("Бот препятствует флуду в чатах.\n"
+                         "Ключевые слова позволяют блокировать сообщения с\n"
+                         "определенными словами в сообщениях.\n"
+                         "Также есть возможность удалять сообщения "
+                         "определенного пользователя."
+                         "Бот автоматически удаляет сообщение если они повторяются много раз подряд.")
 
 
 @dp.message_handler(text='настроить ключевые слова', state=None)
 async def print_keywords_menu(message: types.Message):
-    await message.answer("Ключевые слова", reply_markup=keywords_menu)
+    await message.answer("Ключевые слова позволяют удалять"
+                         "сообщения с определенным набором слов", reply_markup=keywords_menu)
 
 
 @dp.callback_query_handler(text_contains="show_keywords")
 async def show_keyword(call: CallbackQuery):
     keywords = ', '.join([keyword.word for keyword in Keywords.select(Keywords.word)])
-    await call.message.answer(keywords)
+    await call.message.edit_text(keywords, reply_markup=keywords_menu_level2)
 
 
 @dp.callback_query_handler(text_contains="add_keyword", state=None)
 async def add_keyword(call: CallbackQuery):
-    await call.message.answer("Ведите ключевое слово, которое хотите добавить")
+    await call.message.answer("Введите ключевое слово, которое хотите добавить")
     await KeywordsState.add_keyword.set()
 
 
 @dp.message_handler(state=KeywordsState.add_keyword)
 async def add_keyword_to_db(message: types.Message, state: FSMContext):
     Keywords.create(word=message.text)
-    await message.answer("Ключевое слово добавлено")
+    await message.answer("Ключевое слово добавлено", reply_markup=keywords_menu_level2)
     await state.finish()
 
 
@@ -81,17 +88,20 @@ async def add_keyword(call: CallbackQuery):
 @dp.message_handler(state=KeywordsState.delete_keyword)
 async def delete_keyword_from_db(message: types.Message, state: FSMContext):
     Keywords.delete().where(Keywords.word == message.text).execute()
-    await message.answer("Ключевое слово удалено")
+    await message.answer("Ключевое слово удалено", reply_markup=keywords_menu_level2)
     await state.finish()
+
+
+@dp.callback_query_handler(text_contains="back", state=None)
+async def add_keyword(call: CallbackQuery):
+    await call.message.edit_text("Ключевые слова позволяют удалять"
+                         "сообщения с определенным набором слов", reply_markup=keywords_menu)
 
 
 @dp.message_handler(text=['удалить сообщения пользователя'], state=None)
 async def enter_user(message: types.Message):
     await message.answer("Введите имя пользователя у которого нужно удалить сообщения")
     await Test.delete_messages.set()
-
-
-@dp.message_handler(text='настроить антиспам')
 
 
 @dp.message_handler(state=Test.delete_messages)
@@ -104,8 +114,11 @@ async def delete_messages_by_user(message: types.Message, state: FSMContext):
         except MessageToDeleteNotFound:
             continue
     count = Chat.delete().where(Chat.username == message.text).execute()
-    if count == 0:
+    print(count)
+    if count < 1:
         await message.answer("Сообщений пользователя не найдено")
+    else:
+        await message.answer("Сообщения успешно удалены")
     await state.finish()
 
 
@@ -113,29 +126,45 @@ async def delete_messages_by_user(message: types.Message, state: FSMContext):
 async def delete_messages_by_keywords(message: types.Message):
     messages = Chat.select()
     keywords = [row.word for row in Keywords.select(Keywords.word)]
+    count = 0
     for mes in messages:
         for keyword in keywords:
             if keyword in mes.text:
                 try:
                     await bot.delete_message(mes.chat_id, mes.message_id)
-                    Chat.delete().where(Chat.id == mes.id).execute()
+                    count += Chat.delete().where(Chat.id == mes.id).execute()
                 except MessageToDeleteNotFound:
-                    Chat.delete().where(Chat.id == mes.id).execute()
+                    count += Chat.delete().where(Chat.id == mes.id).execute()
                     continue
-    count = Chat.delete().where(Chat.username == message.text).execute()
+    print(count)
     if count < 1:
         await message.answer("Сообщений не найдено")
+    else:
+        await message.answer("Сообщения успешно удалены")
     
 
 @dp.message_handler(user_id=admin_id, commands='admin')
 @auth
-async def process_help_command(message: types.Message):
+async def process_admin_command(message: types.Message):
     await message.answer("Админ", reply_markup=menu)
+
+
+@dp.message_handler(text='закрыть меню')
+async def close_menu(message: types.Message):
+    await message.answer("Выход", reply_markup=ReplyKeyboardRemove())
+
+
+async def set_default_commands(dp):
+    await dp.bot.set_my_commands([
+        types.BotCommand("start", "Начало"),
+        types.BotCommand("help", "Помощь"),
+        types.BotCommand("admin", "Админ-панель")
+    ])
 
 
 @dp.message_handler()
 @has_keywords
-@dp.throttled(anti_flood, rate=1/2)
+@dp.throttled(anti_flood, rate=1/1.5)
 async def process_message(message: types.Message):
     chat = Chat.create(chat_id=message.chat.id, username=message['from']['username'], message_id=message.message_id,
                        text=message.text)

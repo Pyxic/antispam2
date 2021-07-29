@@ -7,5 +7,6 @@ class Test(StatesGroup):
 
 
 class KeywordsState(StatesGroup):
+    show_keywords = State()
     add_keyword = State()
     delete_keyword = State()
