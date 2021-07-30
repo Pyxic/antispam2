@@ -43,9 +43,9 @@ COPY ./entrypoint.prod.sh $APP_HOME
 
 COPY . $APP_HOME
 
-RUN dos2unix /home/app/web/entrypoint.prod.sh
+RUN dos2unix /home/app/web/entrypoint.sh
 
-RUN chmod +x /home/app/web/entrypoint.prod.sh
+RUN chmod +x /home/app/web/entrypoint.sh
 
 RUN chown -R app:app $APP_HOME
 
