@@ -9,12 +9,13 @@ admin_id = env.list('admin_id')
 bot_id = env.int('bot_id')
 
 
-user = 'postgres'
-password = 'pass12345'
-db_name = 'antispam'
+user = env.str('SQL_USER', 'postgres')
+password = env.str('SQL_PASSWORD', 'pass12345')
+db_name = env.str('SQL_DATABASE', 'antispam')
 
 db = PostgresqlDatabase(
     db_name, user=user,
     password=password,
-    host='localhost'
+    host=env.str('ALLOWED_HOSTS', 'localhost'),
+    port=5432
 )

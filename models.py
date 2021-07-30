@@ -13,6 +13,8 @@ class Chat(BaseModel):
     chat_id = CharField(max_length=100)
     message_id = IntegerField()
     username = CharField(max_length=100)
+    first_name = CharField(max_length=100)
+    last_name = CharField(max_length=100)
     text = TextField()
 
     # @staticmethod
@@ -44,7 +46,8 @@ class Keywords(BaseModel):
 if __name__ == '__main__':
     try:
         db.connect()
-        Chat.drop_table()
         Chat.create_table()
+        Keywords.create_table()
+        db.close()
     except InternalError as px:
         print(str(px))

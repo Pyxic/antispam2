@@ -30,7 +30,8 @@ def has_keywords(func):
     async def wrapper(message: types.Message):
         if Keywords.has_keyword(message.text):
             await bot.delete_message(message.chat.id, message.message_id)
-            await bot.send_message(bot_id, f"Пользователь {message['from']['username']} отправил "
+            await bot.send_message(bot_id, f"Пользователь {message['from']['first_name']}"
+                                           f" {message['from']['last_name']} ({message['from']['username']}) отправил "
                                            f"сообщение с запрещенными словами")
             return await message.reply("Сообщение имеет запрещенные слова", reply=False)
         return await func(message)
@@ -63,7 +64,7 @@ async def print_keywords_menu(message: types.Message):
 @dp.callback_query_handler(text_contains="show_keywords")
 async def show_keyword(call: CallbackQuery):
     keywords = ', '.join([keyword.word for keyword in Keywords.select(Keywords.word)])
-    await call.message.edit_text(keywords, reply_markup=keywords_menu_level2)
+    await call.message.edit_text("Ключевые слова: \n"+keywords, reply_markup=keywords_menu_level2)
 
 
 @dp.callback_query_handler(text_contains="add_keyword", state=None)
@@ -75,25 +76,30 @@ async def add_keyword(call: CallbackQuery):
 @dp.message_handler(state=KeywordsState.add_keyword)
 async def add_keyword_to_db(message: types.Message, state: FSMContext):
     Keywords.create(word=message.text)
-    await message.answer("Ключевое слово добавлено", reply_markup=keywords_menu_level2)
+    keywords = ', '.join([keyword.word for keyword in Keywords.select(Keywords.word)])
+    await message.answer("Ключевое слово добавлено: \n"+keywords, reply_markup=keywords_menu_level2)
     await state.finish()
 
 
 @dp.callback_query_handler(text_contains="delete_keyword", state=None)
-async def add_keyword(call: CallbackQuery):
+async def delete_keyword(call: CallbackQuery):
     await call.message.answer("Ведите ключевое слово, которое хотите удалить")
     await KeywordsState.delete_keyword.set()
 
 
 @dp.message_handler(state=KeywordsState.delete_keyword)
 async def delete_keyword_from_db(message: types.Message, state: FSMContext):
-    Keywords.delete().where(Keywords.word == message.text).execute()
-    await message.answer("Ключевое слово удалено", reply_markup=keywords_menu_level2)
+    count = Keywords.delete().where(Keywords.word == message.text).execute()
+    print(count)
+    if count >= 1:
+        await message.answer("Ключевое слово удалено", reply_markup=keywords_menu_level2)
+    else:
+        await message.answer("Ключевое слово не найдено", reply_markup=keywords_menu_level2)
     await state.finish()
 
 
 @dp.callback_query_handler(text_contains="back", state=None)
-async def add_keyword(call: CallbackQuery):
+async def back_keyword(call: CallbackQuery):
     await call.message.edit_text("Ключевые слова позволяют удалять"
                          "сообщения с определенным набором слов", reply_markup=keywords_menu)
 
@@ -166,7 +172,10 @@ async def set_default_commands(dp):
 @has_keywords
 @dp.throttled(anti_flood, rate=1/1.5)
 async def process_message(message: types.Message):
-    chat = Chat.create(chat_id=message.chat.id, username=message['from']['username'], message_id=message.message_id,
+    chat = Chat.create(chat_id=message.chat.id, username=message['from']['username'],
+                       first_name=message['from']['first_name'],
+                       last_name=message['from']['last_name'],
+                       message_id=message.message_id,
                        text=message.text)
     print(chat)
     print(message)
