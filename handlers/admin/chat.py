@@ -150,7 +150,7 @@ async def delete_messages_by_keywords(message: types.Message):
     
 
 @dp.message_handler(user_id=admin_id, commands='admin')
-@auth
+# @auth
 async def process_admin_command(message: types.Message):
     await message.answer("Админ", reply_markup=menu)
 
