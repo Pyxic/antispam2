@@ -20,6 +20,7 @@ menu = ReplyKeyboardMarkup(
         ]
     ],
     resize_keyboard=True,
+    selective=True,
 )
 
 

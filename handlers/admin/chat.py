@@ -152,7 +152,7 @@ async def delete_messages_by_keywords(message: types.Message):
 @dp.message_handler(user_id=admin_id, commands='admin')
 # @auth
 async def process_admin_command(message: types.Message):
-    await bot.send_message(message['from']['user_id'], "Админ", reply_markup=menu)
+    await bot.send_message(bot_id, "Админ", reply_markup=menu)
 
 
 @dp.message_handler(text='закрыть меню')
