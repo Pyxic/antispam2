@@ -1,3 +1,6 @@
+import re
+import string
+
 from peewee import *
 from settings import db
 from utils import is_digit
@@ -35,7 +38,10 @@ class Keywords(BaseModel):
     @staticmethod
     def has_keyword(message: str):
         keywords = [row.word for row in Keywords.select(Keywords.word)]
-        message = message.lower().split()
+        message = message.lower()
+        translator = re.compile('[%s]' % re.escape(string.punctuation))
+        translator.sub(' ', message)
+        message = message.split()
         for keyword in keywords:
             if keyword in message:
                 print(keyword)
