@@ -1,3 +1,5 @@
+import re
+
 from peewee import *
 from settings import db
 from utils import is_digit
@@ -35,9 +37,9 @@ class Keywords(BaseModel):
     @staticmethod
     def has_keyword(message: str):
         keywords = [row.word for row in Keywords.select(Keywords.word)]
-        print(message)
+        message = message.lower()
         for keyword in keywords:
-            if keyword in message.lower():
+            if re.search(f'\b{keyword}\b', message):
                 print(keyword)
                 return True
         return False
