@@ -31,7 +31,7 @@ def has_keywords(func):
         if Keywords.has_keyword(message.text):
             await bot.delete_message(message.chat.id, message.message_id)
             await bot.send_message(bot_id, f"Пользователь {message['from']['first_name']}"
-                                           f" {message['from']['last_name']} ({message['from']['username']}) отправил "
+                                           f"{message['from']['last_name']} ({message['from']['username']}) отправил "
                                            f"сообщение с запрещенными словами")
             #return await message.reply("Сообщение имеет запрещенные слова", reply=False)
         return await func(message)
@@ -152,7 +152,7 @@ async def delete_messages_by_keywords(message: types.Message):
 @dp.message_handler(user_id=admin_id, commands='admin')
 # @auth
 async def process_admin_command(message: types.Message):
-    await bot.send_message(bot_id, "Админ", reply_markup=menu)
+    await bot.send_message(message.from_user.id, "Админ", reply_markup=menu)
 
 
 @dp.message_handler(text='закрыть меню')

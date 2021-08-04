@@ -33,11 +33,11 @@ class Keywords(BaseModel):
     word = CharField(max_length=50)
 
     @staticmethod
-    def has_keyword(message):
+    def has_keyword(message: str):
         keywords = [row.word for row in Keywords.select(Keywords.word)]
         print(message)
         for keyword in keywords:
-            if keyword in message:
+            if keyword in message.lower():
                 print(keyword)
                 return True
         return False
