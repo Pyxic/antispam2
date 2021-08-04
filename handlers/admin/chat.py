@@ -133,7 +133,7 @@ async def delete_messages_by_keywords(message: types.Message):
     messages = Chat.select()
     count = 0
     for mes in messages:
-        if Keywords.has_keyword(mes):
+        if Keywords.has_keyword(mes.text):
             try:
                 await bot.delete_message(mes.chat_id, mes.message_id)
                 count += Chat.delete().where(Chat.id == mes.id).execute()
