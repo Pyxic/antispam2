@@ -40,7 +40,7 @@ class Keywords(BaseModel):
         keywords = [row.word for row in Keywords.select(Keywords.word)]
         message = message.lower()
         translator = re.compile('[%s]' % re.escape(string.punctuation))
-        translator.sub(' ', message)
+        translator.sub('', message)
         message = message.split()
         for keyword in keywords:
             if keyword in message:
