@@ -39,7 +39,7 @@ class Keywords(BaseModel):
     def has_keyword(message: str):
         keywords = [row.word for row in Keywords.select(Keywords.word)]
         message = message.lower()
-        for sp in string.punctuation:
+        for sp in "\"\'.,!":
             message.replace(sp, '')
         message = message.split()
         for keyword in keywords:
