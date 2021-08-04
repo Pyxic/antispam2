@@ -131,17 +131,15 @@ async def delete_messages_by_user(message: types.Message, state: FSMContext):
 @dp.message_handler(text="удаление по ключевым словам")
 async def delete_messages_by_keywords(message: types.Message):
     messages = Chat.select()
-    keywords = [row.word for row in Keywords.select(Keywords.word)]
     count = 0
     for mes in messages:
-        for keyword in keywords:
-            if keyword in mes.text:
-                try:
-                    await bot.delete_message(mes.chat_id, mes.message_id)
-                    count += Chat.delete().where(Chat.id == mes.id).execute()
-                except MessageToDeleteNotFound:
-                    count += Chat.delete().where(Chat.id == mes.id).execute()
-                    continue
+        if Keywords.has_keyword(mes):
+            try:
+                await bot.delete_message(mes.chat_id, mes.message_id)
+                count += Chat.delete().where(Chat.id == mes.id).execute()
+            except MessageToDeleteNotFound:
+                count += Chat.delete().where(Chat.id == mes.id).execute()
+                continue
     print(count)
     if count < 1:
         await message.answer("Сообщений не найдено")
